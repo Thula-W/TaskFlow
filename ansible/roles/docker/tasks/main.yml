@@ -1,0 +1,27 @@
+---
+- name: Ensure Docker package is installed
+  ansible.builtin.dnf:
+    name: docker
+    state: present
+
+- name: Configure Docker daemon settings (log rotation and bridge configuration)
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "50m",
+          "max-file": "3"
+        },
+        "live-restore": true
+      }
+
+- name: Ensure Docker daemon is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started

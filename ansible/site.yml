@@ -1,0 +1,12 @@
+---
+- name: Configure and Harden ECS Host Instances
+  hosts: tag_Role_ecs_host
+  become: true
+  gather_facts: true
+
+  roles:
+    - common
+    - security
+    - docker
+    - ecs
+    - cloudwatch
