@@ -16,9 +16,6 @@ variables:
   IMAGE_TAG: $CI_COMMIT_SHORT_SHA
   AWS_DEFAULT_REGION: "ap-south-1"
 
-default:
-  tags:
-    - docker
 
 # ==============================================================================
 # 1. LINT STAGE: Code quality and syntax validation
