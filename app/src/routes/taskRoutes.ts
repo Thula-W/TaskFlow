@@ -6,7 +6,7 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
-} from '../controllers/taskController.js';
+} from '../controllers/taskController';
 
 export const router = Router();
 

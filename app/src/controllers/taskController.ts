@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { pool } from '../db/index.js';
-import { CreateTaskSchema, UpdateTaskSchema } from '../types/task.js';
-import { logger } from '../utils/logger.js';
+import { pool } from '../db/index';
+import { CreateTaskSchema, UpdateTaskSchema } from '../types/task';
+import { logger } from '../utils/logger';
 
 export const getHealth = async (_req: Request, res: Response): Promise<void> => {
   try {

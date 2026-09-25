@@ -1,7 +1,7 @@
-import { app } from './app.js';
-import { config } from './config/index.js';
-import { initDb, pool } from './db/index.js';
-import { logger } from './utils/logger.js';
+import { app } from './app';
+import { config } from './config/index';
+import { initDb, pool } from './db/index';
+import { logger } from './utils/logger';
 
 let server: ReturnType<typeof app.listen>;
 
