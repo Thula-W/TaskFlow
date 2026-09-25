@@ -1,0 +1,200 @@
+stages:
+  - lint
+  - security
+  - test
+  - build
+  - plan
+  - apply
+  - configure
+  - deploy
+  - smoke-test
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  TF_ROOT: "terraform/envs/prod"
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  AWS_DEFAULT_REGION: "ap-south-1"
+
+default:
+  tags:
+    - docker
+
+# ==============================================================================
+# 1. LINT STAGE: Code quality and syntax validation
+# ==============================================================================
+lint:terraform:
+  stage: lint
+  image: 
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  script:
+    - cd ${TF_ROOT}
+    - terraform fmt -check -recursive
+    - terraform init -backend=false
+    - terraform validate
+
+lint:ansible:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install --no-cache-dir ansible-lint
+  script:
+    - cd ansible
+    - ansible-lint site.yml
+
+lint:app:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - cd app
+    - npm ci
+    - npx tsc --noEmit
+
+# ==============================================================================
+# 2. SECURITY STAGE: Static analysis, secret scanning, container scanning
+# ==============================================================================
+security:gitleaks:
+  stage: security
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - gitleaks detect --verbose --redact
+
+security:tfsec:
+  stage: security
+  image:
+    name: aquasec/tfsec:latest
+    entrypoint: [""]
+  script:
+    - tfsec terraform/
+
+# ==============================================================================
+# 3. TEST STAGE: Unit tests with coverage gate enforcement
+# ==============================================================================
+test:unit:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd app
+    - npm ci
+    - npm test
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: app/coverage/cobertura-coverage.xml
+
+# ==============================================================================
+# 4. BUILD STAGE: Multi-stage Docker build, tag commit SHA, push to AWS ECR
+# ==============================================================================
+build:docker:
+  stage: build
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  before_script:
+    - apk add --no-cache aws-cli curl
+    # Authenticate Docker daemon to Amazon ECR
+    - ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+    - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+  script:
+    - cd app
+    - docker build -t ${ECR_REGISTRY}/taskflow-app:${IMAGE_TAG} -t ${ECR_REGISTRY}/taskflow-app:latest .
+    # Scan container image with Trivy prior to pushing
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL ${ECR_REGISTRY}/taskflow-app:${IMAGE_TAG}
+    # Push versioned SHA and latest tags
+    - docker push ${ECR_REGISTRY}/taskflow-app:${IMAGE_TAG}
+    - docker push ${ECR_REGISTRY}/taskflow-app:latest
+
+# ==============================================================================
+# 5. PLAN STAGE: Terraform plan saved as artifact
+# ==============================================================================
+plan:terraform:
+  stage: plan
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  script:
+    - cd ${TF_ROOT}
+    - terraform init
+    - terraform plan -var="image_tag=${IMAGE_TAG}" -out=tfplan
+  artifacts:
+    name: "tfplan-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - ${TF_ROOT}/tfplan
+    expire_in: 2 days
+
+# ==============================================================================
+# 6. APPLY STAGE: Manual approval gate on default protected branch only
+# ==============================================================================
+apply:terraform:
+  stage: apply
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  script:
+    - cd ${TF_ROOT}
+    - terraform init
+    - terraform apply -auto-approve tfplan
+  dependencies:
+    - plan:terraform
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  allow_failure: false
+
+# ==============================================================================
+# 7. CONFIGURE STAGE: Ansible playbook run against discovered dynamic hosts
+# ==============================================================================
+configure:hosts:
+  stage: configure
+  image: python:3.11-slim
+  before_script:
+    - apt-get update && apt-get install -y openssh-client
+    - pip install --no-cache-dir ansible boto3 botocore
+    - mkdir -p ~/.ssh
+    - echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd ansible
+    - ansible-inventory -i inventory/aws_ec2.yml --list
+    - ansible-playbook -i inventory/aws_ec2.yml site.yml
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ==============================================================================
+# 8. DEPLOY STAGE: Rolling update to ECS service
+# ==============================================================================
+deploy:ecs:
+  stage: deploy
+  image: amazon/aws-cli:latest
+  script:
+    - echo "Updating ECS Service with newly provisioned container image..."
+    - aws ecs update-service --cluster taskflow-prod-cluster --service taskflow-prod-service --force-new-deployment
+    - echo "Waiting for service to reach steady state..."
+    - aws ecs wait services-stable --cluster taskflow-prod-cluster --services taskflow-prod-service
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ==============================================================================
+# 9. SMOKE-TEST STAGE: Validate /health endpoint through the ALB
+# ==============================================================================
+smoke-test:health:
+  stage: smoke-test
+  image: curlimages/curl:latest
+  script:
+    - echo "Resolving Application Load Balancer DNS..."
+    # Query ALB DNS using AWS CLI or a configured CI variable
+    - echo "Pinging ALB /health endpoint: http://${ALB_DNS}/health"
+    - >
+      STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${ALB_DNS}/health)
+    - echo "Response HTTP Status Code is $STATUS"
+    - if [ "$STATUS" -ne 200 ]; then echo "Smoke test failed! Status code was $STATUS"; exit 1; fi
+    - echo "Deployment verified successfully via ALB!"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
