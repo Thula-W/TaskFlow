@@ -191,8 +191,7 @@ smoke-test:health:
     - echo "Resolving Application Load Balancer DNS..."
     # Query ALB DNS using AWS CLI or a configured CI variable
     - echo "Pinging ALB /health endpoint: http://${ALB_DNS}/health"
-    - >
-      STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${ALB_DNS}/health)
+    - STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${ALB_DNS}/health)
     - echo "Response HTTP Status Code is $STATUS"
     - if [ "$STATUS" -ne 200 ]; then echo "Smoke test failed! Status code was $STATUS"; exit 1; fi
     - echo "Deployment verified successfully via ALB!"
