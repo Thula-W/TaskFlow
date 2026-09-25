@@ -188,12 +188,9 @@ smoke-test:health:
   stage: smoke-test
   image: curlimages/curl:latest
   script:
-    - echo "Resolving Application Load Balancer DNS..."
-    # Query ALB DNS using AWS CLI or a configured CI variable
-    - echo "Pinging ALB /health endpoint: http://${ALB_DNS}/health"
-    - STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${ALB_DNS}/health)
-    - echo "Response HTTP Status Code is $STATUS"
-    - if [ "$STATUS" -ne 200 ]; then echo "Smoke test failed! Status code was $STATUS"; exit 1; fi
-    - echo "Deployment verified successfully via ALB!"
+    - 'echo "Resolving Application Load Balancer DNS..."'
+    - 'echo "Pinging ALB /health endpoint: http://${ALB_DNS}/health"'
+    - 'curl --fail --show-error --silent --retry 10 --retry-delay 5 "http://${ALB_DNS}/health"'
+    - 'echo "Deployment verified successfully via ALB!"'
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
