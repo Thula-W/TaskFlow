@@ -1,0 +1,20 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - ap-south-1
+
+# Filter strictly for TaskFlow ECS worker nodes in running state
+filters:
+  tag:Role: ecs-host
+  tag:Environment: prod
+  instance-state-name: running
+
+# Group instances logically based on tags
+keyed_groups:
+  - prefix: tag
+    key: tags.Role
+  - prefix: env
+    key: tags.Environment
+
+# Use private IP addresses because instances reside in private subnets
+compose:
+  ansible_host: private_ip_address

@@ -1,0 +1,17 @@
+---
+- name: Ensure baseline packages and utilities are installed
+  ansible.builtin.dnf:
+    name:
+      - chrony
+      - curl
+      - jq
+      - tar
+      - unzip
+    state: present
+    update_cache: true
+
+- name: Ensure chrony (time synchronization) is enabled and started
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started

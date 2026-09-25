@@ -1,0 +1,62 @@
+---
+# 1. Automatic Security Updates
+- name: Ensure dnf-automatic is installed for security patching
+  ansible.builtin.dnf:
+    name: dnf-automatic
+    state: present
+
+- name: Configure dnf-automatic to apply security updates automatically
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: '^upgrade_type\s*='
+    line: 'upgrade_type = security'
+    state: present
+
+- name: Configure dnf-automatic to apply updates directly
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: '^apply_updates\s*='
+    line: 'apply_updates = yes'
+    state: present
+
+- name: Enable and start dnf-automatic timer
+  ansible.builtin.systemd:
+    name: dnf-automatic.timer
+    enabled: true
+    state: started
+
+# 2. SSH Hardening (Disable password authentication)
+- name: Disable SSH password authentication (enforce key-based authentication only)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication\s+'
+    line: 'PasswordAuthentication no'
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Restart sshd
+
+- name: Disable SSH root login directly
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin\s+'
+    line: 'PermitRootLogin prohibit-password'
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Restart sshd
+
+# 3. Kernel & Network Hardening via sysctl
+- name: Disable IP forwarding on host interface
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1' # Required by Docker bridge networking
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Ignore ICMP ping broadcast requests
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: '1'
+    state: present
+    sysctl_set: true
+    reload: true
