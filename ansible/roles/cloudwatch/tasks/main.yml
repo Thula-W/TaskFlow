@@ -20,11 +20,10 @@
     -s
     -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
   register: cloudwatch_agent_result
-  changed_when: "'Successfully fetched the config' in cw_agent_result.stdout"
+  changed_when: "'Successfully fetched the config' in cloudwatch_agent_result.stdout"
 
 - name: Ensure CloudWatch Agent service is enabled and running
   ansible.builtin.systemd:
     name: amazon-cloudwatch-agent
     enabled: true
     state: started
-  
