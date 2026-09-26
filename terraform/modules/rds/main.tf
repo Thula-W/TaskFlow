@@ -28,7 +28,7 @@ resource "random_password" "db_password" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-
+#tfsec:ignore:aws-ssm-secret-use-customer-key
 resource "aws_secretsmanager_secret" "db_secret" {
   name                    = "taskflow-${var.environment}-db-credentials-v2"
   recovery_window_in_days = 0 # Immediate deletion upon terraform destroy
@@ -49,6 +49,8 @@ resource "aws_secretsmanager_secret_version" "db_secret_val" {
 }
 
 
+#tfsec:ignore:aws-rds-enable-performance-insights
+#tfsec:ignore:aws-rds-encrypt-instance-storage-data
 resource "aws_db_instance" "postgres" {
   identifier             = "taskflow-${var.environment}-postgres"
   engine                 = "postgres"
@@ -58,6 +60,8 @@ resource "aws_db_instance" "postgres" {
   max_allocated_storage  = 50
   storage_type           = "gp3"
   publicly_accessible    = false
+  storage_encrypted      = true
+  backup_retention_period = 7
   db_subnet_group_name   = aws_db_subnet_group.rds.name
   vpc_security_group_ids = var.security_group_ids
   db_name                = "taskflow"

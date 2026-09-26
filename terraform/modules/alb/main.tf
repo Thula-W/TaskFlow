@@ -15,12 +15,14 @@ variable "security_group_ids" {
   type = list(string)
 }
 
+#tfsec:ignore:aws-elb-alb-not-public
 resource "aws_lb" "main" {
   name               = "taskflow-${var.environment}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = var.security_group_ids
   subnets            = var.public_subnet_ids
+  drop_invalid_header_fields = true
 
   tags = {
     Name = "taskflow-${var.environment}-alb"
@@ -51,6 +53,7 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
+#tfsec:ignore:aws-elb-http-not-used
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80

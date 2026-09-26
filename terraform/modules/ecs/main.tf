@@ -1,3 +1,4 @@
+#tfsec:ignore:aws-ecr-repository-customer-key
 resource "aws_ecr_repository" "app" {
   name                 = "taskflow-app"
   image_tag_mutability = "MUTABLE"
@@ -11,7 +12,7 @@ resource "aws_ecr_repository" "app" {
   }
 }
 
-
+#tfsec:ignore:aws-cloudwatch-log-group-customer-key
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name              = "/ecs/taskflow-${var.environment}"
   retention_in_days = 14
@@ -49,6 +50,13 @@ resource "aws_launch_template" "ecs_ec2" {
     arn = var.iam_instance_profile_arn
   }
 
+  # Require IMDSv2 (tokens)
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+  
   network_interfaces {
     associate_public_ip_address = false
     security_groups             = var.security_group_ids

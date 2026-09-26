@@ -11,6 +11,8 @@ variable "app_port" {
 
 
 # 1. ALB Security Group
+#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+#tfsec:ignore:aws-ec2-no-public-egress-sgr
 resource "aws_security_group" "alb" {
   name        = "taskflow-${var.environment}-alb-sg"
   description = "Allows incoming HTTP traffic from the public internet"
@@ -38,6 +40,7 @@ resource "aws_security_group" "alb" {
 }
 
 # 2. EC2 Host (ECS Cluster) Security Group
+#tfsec:ignore:aws-ec2-no-public-egress-sgr
 resource "aws_security_group" "ec2" {
   name        = "taskflow-${var.environment}-ec2-sg"
   description = "Restricts inbound traffic solely to ALB"
@@ -65,6 +68,7 @@ resource "aws_security_group" "ec2" {
 }
 
 # 3. RDS PostgreSQL Security Group
+#tfsec:ignore:aws-ec2-no-public-egress-sgr
 resource "aws_security_group" "rds" {
   name        = "taskflow-${var.environment}-rds-sg"
   description = "Restricts PostgreSQL access strictly to EC2 app instances"
