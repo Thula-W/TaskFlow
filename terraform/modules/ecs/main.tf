@@ -129,7 +129,7 @@ resource "aws_ecs_task_definition" "app" {
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "3000" },
       { name = "LOG_LEVEL", value = "info" },
-      { name = "DATABASE_URL", value = "postgresql://postgres:${var.db_password}@${var.db_address}:5432/taskflow" }
+      { name = "DATABASE_URL", value = "postgresql://postgres:${urlencode(var.db_password)}@${var.db_address}:5432/taskflow" }
     ]
 
     logConfiguration = {
