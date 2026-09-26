@@ -35,6 +35,7 @@ resource "aws_lb_target_group" "app" {
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "instance"
+  deregistration_delay = 30
 
   health_check {
     enabled             = true
