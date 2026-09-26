@@ -35,7 +35,8 @@ lint:ansible:
   stage: lint
   image: python:3.11-slim
   before_script:
-    - pip install --no-cache-dir ansible-lint
+    - pip install --no-cache-dir ansible-lint ansible
+    - ansible-galaxy collection install ansible.posix
   script:
     - cd ansible
     - ansible-lint site.yml
