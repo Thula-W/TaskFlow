@@ -14,6 +14,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "pg": "^8.23.0",
