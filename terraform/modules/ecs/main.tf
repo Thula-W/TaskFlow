@@ -37,9 +37,7 @@ data "aws_ssm_parameter" "ecs_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
 }
 
-data "aws_secretsmanager_secret_version" "db_secret_val" {
-  secret_id = var.db_secret_arn
-}
+{ name = "DATABASE_URL", value = "postgresql://postgres:${var.db_password}@${var.db_address}:5432/taskflow" }
 
 resource "aws_launch_template" "ecs_ec2" {
   name_prefix   = "taskflow-${var.environment}-lt-"

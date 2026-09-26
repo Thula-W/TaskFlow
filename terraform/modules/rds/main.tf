@@ -62,7 +62,7 @@ resource "aws_db_instance" "postgres" {
   storage_type           = "gp3"
   publicly_accessible    = false
   storage_encrypted      = true
-  backup_retention_period = 7
+  backup_retention_period = 1
   iam_database_authentication_enabled = true
   db_subnet_group_name   = aws_db_subnet_group.rds.name
   vpc_security_group_ids = var.security_group_ids
@@ -87,4 +87,10 @@ output "db_address" {
 
 output "db_secret_arn" {
   value = aws_secretsmanager_secret.db_secret.arn
+}
+
+output "db_password" {
+  description = "RDS master password"
+  value       = jsondecode(aws_secretsmanager_secret_version.db_secret_val.secret_string)["password"]
+  sensitive   = true
 }

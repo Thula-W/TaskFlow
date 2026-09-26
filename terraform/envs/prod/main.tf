@@ -50,4 +50,6 @@ module "ecs" {
   task_cpu                 = var.task_cpu
   task_memory              = var.task_memory
   image_tag                = var.image_tag
+  db_address  = module.rds.db_address
+  db_password = module.rds.db_password
 }
