@@ -46,10 +46,10 @@ resource "aws_security_group" "ec2" {
   description = "Restricts inbound traffic solely to ALB"
   vpc_id      = var.vpc_id
 
-  ingress {
-    description     = "Traffic from ALB"
-    from_port       = var.app_port
-    to_port         = var.app_port
+ingress {
+    description     = "Traffic from ALB to dynamic host ports"
+    from_port       = 32768
+    to_port         = 65535
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
