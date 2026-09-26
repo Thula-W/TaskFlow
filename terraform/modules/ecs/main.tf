@@ -122,10 +122,13 @@ resource "aws_ecs_task_definition" "app" {
     environment = [
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "3000" },
-      { name = "LOG_LEVEL", value = "info" },
-      { name = "DATABASE_URL", value = "postgresql://postgres:${urlencode(var.db_password)}@${var.db_address}:5432/taskflow" }
+      { name = "LOG_LEVEL", value = "info" }
     ]
 
+    secrets = [
+      { name = "DATABASE_URL", valueFrom = "${var.db_secret_arn}:url::" }
+    ]
+    
     logConfiguration = {
       logDriver = "awslogs"
       options = {

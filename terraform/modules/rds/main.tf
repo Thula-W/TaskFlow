@@ -45,6 +45,8 @@ resource "aws_secretsmanager_secret_version" "db_secret_val" {
     password = random_password.db_password.result
     database = "taskflow"
     port     = 5432
+    host     = aws_db_instance.postgres.address
+    url      = "postgresql://postgres:${urlencode(random_password.db_password.result)}@${aws_db_instance.postgres.address}:5432/taskflow"
   })
 }
 
@@ -88,10 +90,4 @@ output "db_address" {
 
 output "db_secret_arn" {
   value = aws_secretsmanager_secret.db_secret.arn
-}
-
-output "db_password" {
-  description = "RDS master password"
-  value       = jsondecode(aws_secretsmanager_secret_version.db_secret_val.secret_string)["password"]
-  sensitive   = true
 }

@@ -33,9 +33,3 @@ variable "image_tag" {
   default     = "latest"
   description = "Git commit short SHA image tag"
 }
-
-variable "db_password" {
-  description = "Database master password"
-  type        = string
-  sensitive   = true
-}
