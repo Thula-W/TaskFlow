@@ -55,7 +55,7 @@ resource "aws_secretsmanager_secret_version" "db_secret_val" {
 resource "aws_db_instance" "postgres" {
   identifier             = "taskflow-${var.environment}-postgres"
   engine                 = "postgres"
-  engine_version         = "16.3"
+  engine_version         = "16"
   instance_class         = "db.t4g.micro"
   allocated_storage      = 20
   max_allocated_storage  = 50
@@ -71,6 +71,7 @@ resource "aws_db_instance" "postgres" {
   password               = random_password.db_password.result
   skip_final_snapshot    = true
   deletion_protection    = true
+  auto_minor_version_upgrade          = true
 
   tags = {
     Name = "taskflow-${var.environment}-postgres"
