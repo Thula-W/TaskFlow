@@ -110,7 +110,6 @@ build:docker:
     - trivy image --exit-code 0 --severity HIGH,CRITICAL ${ECR_REGISTRY}/taskflow-app:${IMAGE_TAG}
     # Push versioned SHA and latest tags
     - docker push ${ECR_REGISTRY}/taskflow-app:${IMAGE_TAG}
-    - docker push ${ECR_REGISTRY}/taskflow-app:latest
 
 # ==============================================================================
 # 5. PLAN STAGE: Terraform plan saved as artifact
