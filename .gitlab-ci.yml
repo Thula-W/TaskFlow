@@ -141,6 +141,10 @@ apply:terraform:
     - cd ${TF_ROOT}
     - terraform init
     - terraform apply -auto-approve tfplan
+    - echo "ALB_DNS=$(terraform output -raw alb_dns_name)" >> ${CI_PROJECT_DIR}/build.env
+  artifacts:
+    reports:
+      dotenv: build.env
   dependencies:
     - plan:terraform
   rules:
@@ -189,6 +193,9 @@ deploy:ecs:
 smoke-test:health:
   stage: smoke-test
   image: curlimages/curl:latest
+  needs:
+    - job: apply:terraform
+      artifacts: true
   script:
     - 'echo "Resolving Application Load Balancer DNS..."'
     - 'echo "Pinging ALB /health endpoint: http://${ALB_DNS}/health"'
