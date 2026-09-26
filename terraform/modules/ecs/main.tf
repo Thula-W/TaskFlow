@@ -37,7 +37,6 @@ data "aws_ssm_parameter" "ecs_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
 }
 
-{ name = "DATABASE_URL", value = "postgresql://postgres:${var.db_password}@${var.db_address}:5432/taskflow" }
 
 resource "aws_launch_template" "ecs_ec2" {
   name_prefix   = "taskflow-${var.environment}-lt-"
@@ -130,7 +129,7 @@ resource "aws_ecs_task_definition" "app" {
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "3000" },
       { name = "LOG_LEVEL", value = "info" },
-      { name = "DATABASE_URL", value = "postgresql://postgres:${jsondecode(data.aws_secretsmanager_secret_version.db_secret_val.secret_string)["password"]}@${var.db_address}:5432/taskflow" }
+      { name = "DATABASE_URL", value = "postgresql://postgres:${var.db_password}@${var.db_address}:5432/taskflow" }
     ]
 
     logConfiguration = {
