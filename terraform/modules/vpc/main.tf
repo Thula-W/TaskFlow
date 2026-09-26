@@ -130,3 +130,23 @@ resource "aws_route_table_association" "private_data" {
   subnet_id      = aws_subnet.private_data[count.index].id
   route_table_id = aws_route_table.private_data.id
 }
+
+output "vpc_id" {
+  description = "The ID of the VPC"
+  value       = aws_vpc.main.id
+}
+
+output "public_subnet_ids" {
+  description = "List of IDs of public subnets"
+  value       = aws_subnet.public[*].id
+}
+
+output "private_app_subnet_ids" {
+  description = "List of IDs of private application subnets"
+  value       = aws_subnet.private_app[*].id
+}
+
+output "private_data_subnet_ids" {
+  description = "List of IDs of private database subnets"
+  value       = aws_subnet.private_data[*].id
+}
