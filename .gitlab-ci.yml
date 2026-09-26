@@ -95,6 +95,7 @@ build:docker:
   services:
     - docker:24.0-dind
   before_script:
+    - apk update && apk upgrade --no-cache libexpat expat
     - apk add --no-cache aws-cli curl
     # Authenticate Docker daemon to Amazon ECR
     - ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
