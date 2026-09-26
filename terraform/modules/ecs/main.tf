@@ -1,7 +1,7 @@
 #tfsec:ignore:aws-ecr-repository-customer-key
 resource "aws_ecr_repository" "app" {
   name                 = "taskflow-app"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -22,7 +22,6 @@ resource "aws_cloudwatch_log_group" "ecs_logs" {
   }
 }
 
-
 resource "aws_ecs_cluster" "main" {
   name = "taskflow-${var.environment}-cluster"
 
@@ -32,11 +31,9 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-
 data "aws_ssm_parameter" "ecs_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
 }
-
 
 resource "aws_launch_template" "ecs_ec2" {
   name_prefix   = "taskflow-${var.environment}-lt-"
@@ -47,7 +44,6 @@ resource "aws_launch_template" "ecs_ec2" {
     arn = var.iam_instance_profile_arn
   }
 
-  # Require IMDSv2 (tokens)
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
@@ -59,7 +55,6 @@ resource "aws_launch_template" "ecs_ec2" {
     security_groups             = var.security_group_ids
   }
 
-  # Configures the host instance to join our ECS cluster
   user_data = base64encode(<<-EOF
               #!/bin/bash
               echo "ECS_CLUSTER=${aws_ecs_cluster.main.name}" >> /etc/ecs/ecs.config
@@ -75,7 +70,6 @@ resource "aws_launch_template" "ecs_ec2" {
     }
   }
 }
-
 
 resource "aws_autoscaling_group" "ecs_asg" {
   name_prefix         = "taskflow-${var.environment}-asg-"
@@ -101,7 +95,6 @@ resource "aws_autoscaling_group" "ecs_asg" {
     propagate_at_launch = true
   }
 }
-
 
 resource "aws_ecs_task_definition" "app" {
   family                   = "taskflow-${var.environment}"
@@ -143,7 +136,6 @@ resource "aws_ecs_task_definition" "app" {
   }])
 }
 
-# 8. ECS Service
 resource "aws_ecs_service" "app" {
   name            = "taskflow-${var.environment}-service"
   cluster         = aws_ecs_cluster.main.id
@@ -157,8 +149,9 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
+  # Allow ECS to terminate an old container before placing a new one on port 3000
   deployment_minimum_healthy_percent = 50
-  deployment_maximum_percent         = 200
+  deployment_maximum_percent         = 100
 
   depends_on = [aws_autoscaling_group.ecs_asg]
 }
