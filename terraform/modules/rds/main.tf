@@ -70,7 +70,7 @@ resource "aws_db_instance" "postgres" {
   username               = "postgres"
   password               = random_password.db_password.result
   skip_final_snapshot    = true
-  deletion_protection    = false
+  deletion_protection    = true
 
   tags = {
     Name = "taskflow-${var.environment}-postgres"
