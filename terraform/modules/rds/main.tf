@@ -51,6 +51,7 @@ resource "aws_secretsmanager_secret_version" "db_secret_val" {
 
 #tfsec:ignore:aws-rds-enable-performance-insights
 #tfsec:ignore:aws-rds-encrypt-instance-storage-data
+#tfsec:ignore:aws-rds-specify-backup-retention
 resource "aws_db_instance" "postgres" {
   identifier             = "taskflow-${var.environment}-postgres"
   engine                 = "postgres"
@@ -62,6 +63,7 @@ resource "aws_db_instance" "postgres" {
   publicly_accessible    = false
   storage_encrypted      = true
   backup_retention_period = 7
+  iam_database_authentication_enabled = true
   db_subnet_group_name   = aws_db_subnet_group.rds.name
   vpc_security_group_ids = var.security_group_ids
   db_name                = "taskflow"

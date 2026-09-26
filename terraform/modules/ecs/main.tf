@@ -1,7 +1,7 @@
 #tfsec:ignore:aws-ecr-repository-customer-key
 resource "aws_ecr_repository" "app" {
   name                 = "taskflow-app"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -56,7 +56,7 @@ resource "aws_launch_template" "ecs_ec2" {
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
-  
+
   network_interfaces {
     associate_public_ip_address = false
     security_groups             = var.security_group_ids
