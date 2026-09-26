@@ -97,6 +97,8 @@ build:docker:
   before_script:
     - apk update && apk upgrade --no-cache libexpat expat
     - apk add --no-cache aws-cli curl
+    # Ensure ECR repository exists before pushing
+    - aws ecr describe-repositories --repository-names taskflow-app --region ${AWS_DEFAULT_REGION} || aws ecr create-repository --repository-name taskflow-app --image-tag-mutability IMMUTABLE --region ${AWS_DEFAULT_REGION}
     # Authenticate Docker daemon to Amazon ECR
     - ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
     - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
