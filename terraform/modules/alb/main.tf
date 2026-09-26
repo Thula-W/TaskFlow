@@ -41,7 +41,7 @@ resource "aws_lb_target_group" "app" {
     enabled             = true
     path                = "/health"
     protocol            = "HTTP"
-    port                = "3000"
+    port                = "traffic-port"
     matcher             = "200"
     interval            = 30
     timeout             = 5
