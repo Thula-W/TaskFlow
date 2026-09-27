@@ -25,9 +25,6 @@ resource "aws_iam_role" "ec2_instance_role" {
   })
 }
 
-
-
-# Attach standard AWS managed policies for ECS on EC2 & CloudWatch
 resource "aws_iam_role_policy_attachment" "ecs_ec2_role" {
   role       = aws_iam_role.ec2_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
@@ -38,35 +35,64 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
-# Allows SSM Session Manager to reach these instances without SSH/public IP —
-# required because the hosts sit in private subnets with no inbound port 22 path.
 resource "aws_iam_role_policy_attachment" "ssm_core" {
   role       = aws_iam_role.ec2_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# IAM Instance Profile referenced by the Launch Template
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "taskflow-${var.environment}-ec2-instance-profile"
   role = aws_iam_role.ec2_instance_role.name
 }
 
 # -------------------------------------------------------------
-# SSM File-Transfer Bucket (used by the aws_ssm connection plugin
-# to move Ansible module code to/from the private EC2 hosts)
+# SSM File-Transfer Bucket (internal CI/CD tooling only — used by
+# the aws_ssm connection plugin to move Ansible module code to/from
+# private EC2 hosts; holds no application or user data)
 # -------------------------------------------------------------
-#tfsec:ignore:aws-s3-encryption-customer-key
+resource "aws_kms_key" "ssm_transfer" {
+  description             = "CMK for encrypting the TaskFlow SSM transfer bucket"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowAccountRootFullAccess"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
+}
+
+resource "aws_kms_alias" "ssm_transfer" {
+  name          = "alias/taskflow-${var.environment}-ssm-transfer"
+  target_key_id = aws_kms_key.ssm_transfer.key_id
+}
+
+#tfsec:ignore:aws-s3-enable-bucket-logging -- transient CI/CD staging bucket for Ansible SSM file transfer only; holds no application or user data, so access logging adds operational overhead without a corresponding security benefit here.
 resource "aws_s3_bucket" "ssm_transfer" {
   bucket        = "taskflow-${var.environment}-ssm-transfer-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
+}
+
+resource "aws_s3_bucket_versioning" "ssm_transfer" {
+  bucket = aws_s3_bucket.ssm_transfer.id
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "ssm_transfer" {
   bucket = aws_s3_bucket.ssm_transfer.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.ssm_transfer.arn
     }
+    bucket_key_enabled = true
   }
 }
 
@@ -78,6 +104,7 @@ resource "aws_s3_bucket_public_access_block" "ssm_transfer" {
   restrict_public_buckets = true
 }
 
+#tfsec:ignore:aws-iam-no-policy-wildcards -- object-level access inherently requires a /* suffix on the bucket ARN (S3 has no narrower object-path grain here); access is already scoped to this one dedicated bucket, not a wildcarded bucket name.
 resource "aws_iam_role_policy" "ssm_transfer_access" {
   name = "taskflow-${var.environment}-ssm-transfer-access"
   role = aws_iam_role.ec2_instance_role.name
@@ -113,7 +140,6 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_standard" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Custom policy to read DB credentials from Secrets Manager
 resource "aws_iam_policy" "secrets_read_policy" {
   name        = "taskflow-${var.environment}-secrets-read-policy"
   description = "Allows ECS agent to read TaskFlow DB secrets"
