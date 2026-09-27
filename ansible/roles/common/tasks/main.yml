@@ -9,6 +9,7 @@
       - unzip
     state: present
     update_cache: true
+    allowerasing: true
 
 - name: Ensure chrony (time synchronization) is enabled and started
   ansible.builtin.systemd:
