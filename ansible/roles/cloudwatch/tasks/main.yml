@@ -1,16 +1,25 @@
 ---
+- name: Ensure /opt/taskflow directory exists
+  ansible.builtin.file:
+    path: /opt/taskflow
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+    
 - name: Install Amazon CloudWatch Agent package
   ansible.builtin.dnf:
     name: amazon-cloudwatch-agent
     state: present
 
-- name: Deploy CloudWatch Agent configuration JSON
+- name: Deploy CloudWatch Agent source configuration JSON (Ansible-managed, untouched by the agent)
   ansible.builtin.template:
     src: amazon-cloudwatch-agent.json.j2
-    dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    dest: /opt/taskflow/cloudwatch-agent-source.json
     owner: root
     group: root
     mode: '0644'
+  register: cloudwatch_config
 
 - name: Apply configuration and restart CloudWatch Agent
   ansible.builtin.command: >
@@ -18,7 +27,8 @@
     -a fetch-config
     -m ec2
     -s
-    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    -c file:/opt/taskflow/cloudwatch-agent-source.json
+  when: cloudwatch_config.changed
   register: cloudwatch_agent_result
   changed_when: "'Successfully fetched the config' in cloudwatch_agent_result.stdout"
 
