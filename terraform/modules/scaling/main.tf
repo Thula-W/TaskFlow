@@ -88,8 +88,8 @@ resource "aws_kms_key" "sns_scaling" {
         Resource  = "*"
       },
       {
-        Sid    = "AllowCloudWatchToPublish"
-        Effect = "Allow"
+        Sid       = "AllowCloudWatchToPublish"
+        Effect    = "Allow"
         Principal = { Service = "cloudwatch.amazonaws.com" }
         Action = [
           "kms:Decrypt",

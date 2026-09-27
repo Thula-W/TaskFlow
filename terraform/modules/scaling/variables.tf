@@ -1,9 +1,9 @@
-variable "environment"        { type = string }
-variable "cluster_name"       { type = string }
-variable "service_name"       { type = string }
-variable "task_family"        { type = string }
+variable "environment" { type = string }
+variable "cluster_name" { type = string }
+variable "service_name" { type = string }
+variable "task_family" { type = string }
 variable "execution_role_arn" { type = string }
-variable "task_role_arn"      { type = string }
+variable "task_role_arn" { type = string }
 
 variable "cpu_high_threshold" {
   type    = number

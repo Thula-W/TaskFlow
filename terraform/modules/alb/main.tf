@@ -17,11 +17,11 @@ variable "security_group_ids" {
 
 #tfsec:ignore:aws-elb-alb-not-public
 resource "aws_lb" "main" {
-  name               = "taskflow-${var.environment}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = var.security_group_ids
-  subnets            = var.public_subnet_ids
+  name                       = "taskflow-${var.environment}-alb"
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = var.security_group_ids
+  subnets                    = var.public_subnet_ids
   drop_invalid_header_fields = true
 
   tags = {
@@ -30,11 +30,11 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "taskflow-${var.environment}-tg"
-  port        = 3000
-  protocol    = "HTTP"
-  vpc_id      = var.vpc_id
-  target_type = "instance"
+  name                 = "taskflow-${var.environment}-tg"
+  port                 = 3000
+  protocol             = "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "instance"
   deregistration_delay = 30
 
   health_check {

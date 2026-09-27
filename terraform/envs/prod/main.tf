@@ -53,11 +53,11 @@ module "ecs" {
 }
 
 module "scaling" {
-  source              = "../../modules/scaling"
-  environment         = var.environment
-  cluster_name        = module.ecs.cluster_name
-  service_name        = module.ecs.service_name
-  task_family         = "taskflow-${var.environment}"
-  execution_role_arn  = module.iam.ecs_execution_role_arn
-  task_role_arn       = module.iam.ecs_task_role_arn
+  source             = "../../modules/scaling"
+  environment        = var.environment
+  cluster_name       = module.ecs.cluster_name
+  service_name       = module.ecs.service_name
+  task_family        = "taskflow-${var.environment}"
+  execution_role_arn = module.iam.ecs_execution_role_arn
+  task_role_arn      = module.iam.ecs_task_role_arn
 }
