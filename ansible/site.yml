@@ -1,6 +1,6 @@
 ---
 - name: Configure and Harden ECS Host Instances
-  hosts: tag_Role_ecs_host
+  hosts: all
   become: true
   gather_facts: true
 
