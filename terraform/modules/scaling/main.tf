@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 data "archive_file" "scaler" {
   type        = "zip"
   source_file = "${path.module}/lambda/scale_handler.py"
@@ -70,9 +72,43 @@ resource "aws_lambda_function" "scaler" {
   }
 }
 
+resource "aws_kms_key" "sns_scaling" {
+  description             = "CMK for encrypting TaskFlow vertical-scaling SNS topic"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowAccountRootFullAccess"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchToPublish"
+        Effect = "Allow"
+        Principal = { Service = "cloudwatch.amazonaws.com" }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_kms_alias" "sns_scaling" {
+  name          = "alias/taskflow-${var.environment}-sns-scaling"
+  target_key_id = aws_kms_key.sns_scaling.key_id
+}
+
 resource "aws_sns_topic" "scaling_alerts" {
-  name = "taskflow-${var.environment}-scaling-alerts"
-  kms_master_key_id = "alias/aws/sns"
+  name              = "taskflow-${var.environment}-scaling-alerts"
+  kms_master_key_id = aws_kms_key.sns_scaling.arn
 }
 
 resource "aws_sns_topic_subscription" "lambda" {
