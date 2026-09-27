@@ -19,6 +19,7 @@ resource "aws_iam_role" "scaler_lambda" {
   })
 }
 
+#tfsec:ignore:aws-iam-no-policy-wildcards -- ecs:DescribeTaskDefinition and ecs:RegisterTaskDefinition do not support resource-level permissions per AWS's IAM action reference; Resource must be "*" for these two actions specifically.
 resource "aws_iam_role_policy" "scaler_lambda_policy" {
   name = "taskflow-${var.environment}-scaler-lambda-policy"
   role = aws_iam_role.scaler_lambda.id
@@ -31,7 +32,6 @@ resource "aws_iam_role_policy" "scaler_lambda_policy" {
         Action   = ["ecs:DescribeServices", "ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition", "ecs:UpdateService"]
         Resource = "arn:aws:ecs:*:*:service/${var.cluster_name}/${var.service_name}"
       },
-       #tfsec:ignore:aws-iam-no-policy-wildcards
       {
         Effect   = "Allow"
         Action   = ["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition"]
