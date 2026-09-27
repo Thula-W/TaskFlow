@@ -43,6 +43,11 @@ resource "aws_iam_role_policy" "scaler_lambda_policy" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "scaler_xray" {
+  role       = aws_iam_role.scaler_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_lambda_function" "scaler" {
   function_name    = "taskflow-${var.environment}-vertical-scaler"
   role             = aws_iam_role.scaler_lambda.arn
@@ -51,6 +56,10 @@ resource "aws_lambda_function" "scaler" {
   filename         = data.archive_file.scaler.output_path
   source_code_hash = data.archive_file.scaler.output_base64sha256
   timeout          = 30
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -63,6 +72,7 @@ resource "aws_lambda_function" "scaler" {
 
 resource "aws_sns_topic" "scaling_alerts" {
   name = "taskflow-${var.environment}-scaling-alerts"
+  kms_master_key_id = "alias/aws/sns"
 }
 
 resource "aws_sns_topic_subscription" "lambda" {
