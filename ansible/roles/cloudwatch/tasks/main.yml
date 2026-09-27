@@ -19,18 +19,7 @@
     owner: root
     group: root
     mode: '0644'
-  register: cloudwatch_config
-
-- name: Apply configuration and restart CloudWatch Agent
-  ansible.builtin.command: >
-    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl
-    -a fetch-config
-    -m ec2
-    -s
-    -c file:/opt/taskflow/cloudwatch-agent-source.json
-  when: cloudwatch_config.changed
-  register: cloudwatch_agent_result
-  changed_when: "'Successfully fetched the config' in cloudwatch_agent_result.stdout"
+  notify: Apply CloudWatch Agent configuration
 
 - name: Ensure CloudWatch Agent service is enabled and running
   ansible.builtin.systemd:

@@ -1,0 +1,10 @@
+---
+- name: Apply CloudWatch Agent configuration
+  ansible.builtin.command: >
+    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl
+    -a fetch-config
+    -m ec2
+    -s
+    -c file:/opt/taskflow/cloudwatch-agent-source.json
+  register: cloudwatch_agent_result
+  changed_when: "'Successfully fetched the config' in cloudwatch_agent_result.stdout"
