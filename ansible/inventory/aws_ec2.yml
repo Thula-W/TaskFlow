@@ -11,9 +11,8 @@ filters:
 # Group instances logically based on tags
 keyed_groups:
   - prefix: tag
-    key: tags.Role
-  - prefix: env
-    key: tags.Environment
+    key: tags
+
 
 # Use private IP addresses because instances reside in private subnets
 compose:
