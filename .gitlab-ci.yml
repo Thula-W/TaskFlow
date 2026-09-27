@@ -159,11 +159,12 @@ configure:hosts:
   stage: configure
   image: python:3.11-slim
   before_script:
-    - apt-get update && apt-get install -y openssh-client
+    - apt-get update && apt-get install -y curl unzip
+    - curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o session-manager-plugin.deb
+    - dpkg -i session-manager-plugin.deb
     - pip install --no-cache-dir ansible boto3 botocore
-    - mkdir -p ~/.ssh
-    - echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
+    - ansible-galaxy collection install amazon.aws community.aws
+
   script:
     - cd ansible
     - ansible-inventory -i inventory/aws_ec2.yml --list

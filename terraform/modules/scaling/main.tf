@@ -43,8 +43,8 @@ resource "aws_iam_role_policy" "scaler_lambda_policy" {
         Resource = [var.execution_role_arn, var.task_role_arn]
       },
       {
-        Effect   = "Allow"
-        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Effect = "Allow"
+        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = [
           "arn:aws:logs:*:*:log-group:/aws/lambda/taskflow-${var.environment}-vertical-scaler:*"
         ]

@@ -12,3 +12,7 @@ output "rds_endpoint" {
   description = "Internal endpoint of the RDS database"
   value       = module.rds.db_endpoint
 }
+
+output "ssm_transfer_bucket" {
+  value = module.iam.ssm_transfer_bucket
+}
