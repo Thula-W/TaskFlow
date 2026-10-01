@@ -1,0 +1,247 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  description: >
+    A small internal task management REST API. Provides CRUD operations on
+    tasks and a health check endpoint used by the ALB and CI smoke test.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: http://{alb_dns_name}
+    description: Production (via Application Load Balancer)
+    variables:
+      alb_dns_name:
+        default: taskflow-prod-alb.example.com
+
+tags:
+  - name: Health
+  - name: Tasks
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: >
+        Checks that the API can reach the database (runs SELECT 1).
+        Used by the ALB target group health check and the CI smoke-test stage.
+      responses:
+        "200":
+          description: App is healthy and the database is reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+        "503":
+          description: App is up but the database is unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  error:
+                    type: string
+                    example: Database unavailable
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List all tasks
+      description: Returns all tasks, most recently created first.
+      responses:
+        "200":
+          description: A list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      tags: [Tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+            examples:
+              minimal:
+                value: { title: "Write documentation" }
+              full:
+                value:
+                  title: "Write documentation"
+                  description: "Add OpenAPI spec and runbook"
+                  status: "IN_PROGRESS"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Validation failed (e.g. missing title)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Task UUID
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Tasks]
+      summary: Get a task by ID
+      responses:
+        "200":
+          description: The requested task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+    put:
+      tags: [Tasks]
+      summary: Update a task
+      description: >
+        Partial update — at least one of title, description, or status
+        must be provided.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+            examples:
+              statusChange:
+                value: { status: "COMPLETED" }
+      responses:
+        "200":
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Validation failed (e.g. empty request body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      responses:
+        "204":
+          description: Task deleted (no content returned)
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "Write documentation"
+        description:
+          type: string
+          nullable: true
+          example: "Add OpenAPI spec and runbook"
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED]
+          default: PENDING
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED]
+          default: PENDING
+
+    UpdateTaskRequest:
+      type: object
+      description: At least one field must be provided.
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED]
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Validation failed
+        details:
+          type: array
+          description: Raw Zod validation issues
+          items:
+            type: object
+
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Task not found
